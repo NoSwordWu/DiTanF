@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>市场覆盖情况 - 驾驶舱看板</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0e27;
+            --bg-secondary: #121a42;
+            --bg-card: rgba(255, 255, 255, 0.06);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.5);
+            --accent-primary: #00d4ff;
+            --accent-secondary: #00ff88;
+            --accent-warning: #ffaa00;
+            --accent-danger: #ff4757;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
+            --heatmap-min: rgba(0, 212, 255, 0.15);
+            --heatmap-max: rgba(0, 212, 255, 0.7);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-card: rgba(0, 0, 0, 0.03);
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --accent-primary: #0284c7;
+            --accent-secondary: #10b981;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.06);
+            --heatmap-min: rgba(2, 132, 199, 0.1);
+            --heatmap-max: rgba(2, 132, 199, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Inter', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .main-content {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .left-panel {
+            flex: 0 0 55%;
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-card);
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .right-panel {
+            flex: 0 0 45%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .charts-row {
+            display: flex;
+            gap: 12px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .charts-row .chart-container {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .charts-row .chart-container .chart-content {
+            flex: 1;
+            min-height: 0;
+        }
+
+        .seven-day-chart {
+            max-height: 240px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-shrink: 0;
+        }
+
+        .panel-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-title::before {
+            content: '';
+            width: 3px;
+            height: 18px;
+            background: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 2px;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .filter-input {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.25s ease;
+        }
+
+        .filter-input:focus {
+            border-color: var(--accent-primary);
+        }
+
+        .filter-input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+
+        .filter-input[type="date"]::-webkit-datetime-edit,
+        .filter-input[type="date"]::-webkit-datetime-edit-text,
+        .filter-input[type="date"]::-webkit-datetime-edit-month-field,
+        .filter-input[type="date"]::-webkit-datetime-edit-day-field,
+        .filter-input[type="date"]::-webkit-datetime-edit-year-field {
+            color: var(--text-primary);
+        }
+
+        [data-theme="light"] .filter-input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: none;
+        }
+
+        [data-theme="light"] .filter-input[type="date"]::-webkit-datetime-edit,
+        [data-theme="light"] .filter-input[type="date"]::-webkit-datetime-edit-text,
+        [data-theme="light"] .filter-input[type="date"]::-webkit-datetime-edit-month-field,
+        [data-theme="light"] .filter-input[type="date"]::-webkit-datetime-edit-day-field,
+        [data-theme="light"] .filter-input[type="date"]::-webkit-datetime-edit-year-field {
+            color: var(--text-primary);
+        }
+
+        .filter-btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            transition: all 0.25s ease;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .filter-btn.active {
+            background: var(--accent-primary);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .heatmap-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            border-radius: 10px;
+            background: var(--bg-secondary);
+            padding: 10px;
+            min-height: 0;
+            max-height: calc(100vh - 100px);
+        }
+
+        .heatmap-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .heatmap-table th {
+            padding: 8px 10px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--text-secondary);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .heatmap-table th:first-child {
+            text-align: left;
+            width: 100px;
+        }
+
+        .heatmap-table .city-row {
+            background: rgba(0, 212, 255, 0.08);
+        }
+
+        .heatmap-table .city-row td {
+            padding: 6px 10px;
+            font-weight: 600;
+            color: var(--accent-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            border: none;
+        }
+
+        .heatmap-table .city-row td:hover {
+            background: rgba(0, 212, 255, 0.12);
+        }
+
+        .city-name {
+            flex: 1;
+            text-align: left;
+        }
+
+        .expand-icon {
+            font-size: 14px;
+            color: var(--text-muted);
+            transition: transform 0.2s ease;
+            margin-left: 8px;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+
+        .district-row.hidden {
+            display: none;
+        }
+
+        .heatmap-table .district-row:hover td {
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .heatmap-table .district-row td:first-child {
+            padding: 6px 10px;
+            color: var(--text-primary);
+            font-weight: 500;
+            padding-left: 20px;
+        }
+
+        .heatmap-cell {
+            padding: 6px 10px;
+            text-align: center;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--text-primary);
+            font-weight: 500;
+            min-width: 60px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 212, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .heatmap-cell::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.6), inset 0 0 15px rgba(255, 255, 255, 0.1);
+            border-color: rgba(0, 212, 255, 0.4);
+            z-index: 10;
+        }
+
+        .heatmap-cell.high-intensity {
+            border-color: rgba(0, 212, 255, 0.3);
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-card);
+            height: 110px;
+            flex-shrink: 0;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .chart-container {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 14px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-card);
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 140px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        .chart-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .chart-tabs {
+            display: flex;
+            gap: 6px;
+        }
+
+        .tab-btn {
+            padding: 4px 12px;
+            border: none;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            transition: all 0.25s ease;
+        }
+
+        .tab-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--accent-primary), rgba(0, 212, 255, 0.3));
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .chart-content {
+            flex: 1;
+            min-height: 0;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            width: 400px;
+            max-width: 90%;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 13px;
+            outline: none;
+            transition: all 0.25s ease;
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-input:disabled {
+            background: var(--bg-card);
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), rgba(0, 212, 255, 0.7));
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .record-list {
+            max-height: 120px;
+            overflow-y: auto;
+            margin-top: 8px;
+            padding-right: 6px;
+        }
+
+        .record-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background: var(--bg-card);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .record-time {
+            color: var(--accent-primary);
+        }
+
+        .record-count {
+            color: var(--accent-secondary);
+            font-weight: 600;
+            margin-right: 12px;
+        }
+
+        .record-delete {
+            background: transparent;
+            border: none;
+            color: var(--accent-danger);
+            font-size: 11px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+
+        .record-delete:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .scrollbar::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        .scrollbar::-webkit-scrollbar-track {
+            background: var(--bg-card);
+            border-radius: 3px;
+        }
+
+        .scrollbar::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .scrollbar::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        .date-picker-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .date-picker-input {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.25s ease;
+            min-width: 120px;
+            cursor: pointer;
+        }
+
+        .date-picker-input:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .date-picker-input:focus {
+            border-color: var(--accent-primary);
+        }
+
+        .date-picker-calendar {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px;
+            z-index: 1000;
+            min-width: 220px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .date-picker-calendar.show {
+            display: block;
+        }
+
+        .date-picker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 0 4px;
+        }
+
+        .date-picker-nav {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .date-picker-nav:hover {
+            background: var(--bg-card);
+            color: var(--accent-primary);
+        }
+
+        .date-picker-month {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .date-picker-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin-bottom: 4px;
+        }
+
+        .date-picker-weekday {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 4px;
+        }
+
+        .date-picker-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+
+        .date-picker-day {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-primary);
+            padding: 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: transparent;
+            border: none;
+        }
+
+        .date-picker-day:hover {
+            background: var(--bg-card);
+        }
+
+        .date-picker-day.today {
+            background: var(--accent-primary);
+            color: #fff;
+        }
+
+        .date-picker-day.selected {
+            background: var(--accent-secondary);
+            color: #000;
+        }
+
+        .date-picker-day.other-month {
+            color: var(--text-muted);
+            opacity: 0.5;
+        }
+
+        .date-picker-footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .date-picker-btn {
+            background: transparent;
+            border: none;
+            color: var(--accent-primary);
+            font-size: 11px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+
+        .date-picker-btn:hover {
+            background: var(--bg-card);
+        }
+
+        .date-picker-clear {
+            color: var(--accent-danger);
+        }
+    </style>
+</head>
+<body>
+    <div class="main-content">
+        <div class="left-panel">
+            <div class="panel-header">
+                <div class="panel-title">区县市场跑动覆盖情况</div>
+                <div class="filter-bar">
+                    <div class="date-picker-wrapper">
+                        <input type="text" class="date-picker-input" id="filterStartDate" placeholder="开始日期" readonly>
+                        <div class="date-picker-calendar" id="startDateCalendar"></div>
+                    </div>
+                    <div class="date-picker-wrapper">
+                        <input type="text" class="date-picker-input" id="filterEndDate" placeholder="结束日期" readonly>
+                        <div class="date-picker-calendar" id="endDateCalendar"></div>
+                    </div>
+                    <button class="filter-btn" id="filterWeekBtn">本周</button>
+                    <button class="filter-btn" id="filterResetBtn">全部</button>
+                </div>
+            </div>
+            <div class="heatmap-container scrollbar" id="heatmap"></div>
+        </div>
+
+        <div class="right-panel">
+            <div class="stat-card">
+                <div class="stat-row">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalVisits">0</div>
+                        <div class="stat-label">总拜访次数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="weekVisits">0</div>
+                        <div class="stat-label">本周拜访次数</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container seven-day-chart">
+                <div class="chart-header">
+                    <div class="chart-title">近七日跑动趋势</div>
+                </div>
+                <div class="chart-content" id="sevenDayChart"></div>
+            </div>
+
+            <div class="charts-row">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="chart-title">地市覆盖分析</div>
+                        <div class="chart-tabs">
+                            <button class="tab-btn active" data-chart="city" data-period="total">总计</button>
+                            <button class="tab-btn" data-chart="city" data-period="week">本周</button>
+                        </div>
+                    </div>
+                    <div class="chart-content" id="cityChart"></div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="chart-title">机构覆盖分析</div>
+                        <div class="chart-tabs">
+                            <button class="tab-btn active" data-chart="org" data-period="total">总计</button>
+                            <button class="tab-btn" data-chart="org" data-period="week">本周</button>
+                        </div>
+                    </div>
+                    <div class="chart-content" id="orgChart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="visitModal">
+        <div class="modal-content">
+            <div class="modal-title">拜访登记</div>
+            <div class="form-group">
+                <label class="form-label">地区</label>
+                <input type="text" class="form-input" id="modalRegion" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">机构</label>
+                <input type="text" class="form-input" id="modalOrg" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">新增拜访次数</label>
+                <input type="number" class="form-input" id="modalCount" placeholder="请输入拜访次数" min="1">
+            </div>
+            <div class="form-group">
+                <label class="form-label">拜访时间</label>
+                <div class="date-picker-wrapper">
+                    <input type="text" class="date-picker-input" id="modalTime" placeholder="选择日期" readonly>
+                    <div class="date-picker-calendar" id="modalTimeCalendar"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">历史记录</label>
+                <div class="record-list scrollbar" id="recordList"></div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-secondary" id="modalCancel">取消</button>
+                <button class="btn btn-primary" id="modalSubmit">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let marketData = null;
+        let currentTheme = 'dark';
+        let sevenDayChart, cityChart, orgChart;
+        let filterStartDate = null;
+        let filterEndDate = null;
+
+        const loadData = async () => {
+            try {
+                const response = await fetch('/.netlify/functions/visits');
+                if (response.ok) {
+                    marketData = await response.json();
+                    initPage();
+                    return;
+                }
+            } catch (e) {
+                console.log('API 不可用，尝试本地存储...');
+            }
+
+            const saved = localStorage.getItem('marketData');
+            if (saved) {
+                marketData = JSON.parse(saved);
+                initPage();
+                return;
+            }
+
+            try {
+                const response = await fetch('data/marketData.json');
+                marketData = await response.json();
+                localStorage.setItem('marketData', JSON.stringify(marketData));
+                initPage();
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                generateMockData();
+                initPage();
+            }
+        };
+
+        const generateMockData = () => {
+            marketData = {
+                cities: [
+                    { name: '杭州市', districts: ['市本级', '上城区', '下城区', '江干区', '拱墅区', '西湖区', '滨江区', '萧山区', '余杭区', '富阳区', '临安区', '桐庐县', '淳安县', '建德市'] },
+                    { name: '宁波市', districts: ['市本级', '海曙区', '江北区', '北仑区', '镇海区', '鄞州区', '奉化区', '象山县', '宁海县', '余姚市', '慈溪市'] },
+                    { name: '温州市', districts: ['市本级', '鹿城区', '龙湾区', '瓯海区', '洞头区', '永嘉县', '平阳县', '苍南县', '文成县', '泰顺县', '瑞安市', '乐清市', '龙港市'] },
+                    { name: '嘉兴市', districts: ['市本级', '南湖区', '秀洲区', '嘉善县', '海盐县', '海宁市', '平湖市', '桐乡市'] },
+                    { name: '湖州市', districts: ['市本级', '吴兴区', '南浔区', '德清县', '长兴县', '安吉县'] },
+                    { name: '绍兴市', districts: ['市本级', '越城区', '柯桥区', '上虞区', '新昌县', '诸暨市', '嵊州市'] },
+                    { name: '金华市', districts: ['市本级', '婺城区', '金东区', '武义县', '浦江县', '磐安县', '兰溪市', '义乌市', '东阳市', '永康市'] },
+                    { name: '衢州市', districts: ['市本级', '柯城区', '衢江区', '常山县', '开化县', '龙游县', '江山市'] },
+                    { name: '舟山市', districts: ['市本级', '定海区', '普陀区', '岱山县', '嵊泗县'] },
+                    { name: '台州市', districts: ['市本级', '椒江区', '黄岩区', '路桥区', '玉环市', '三门县', '天台县', '仙居县', '温岭市', '临海市'] },
+                    { name: '丽水市', districts: ['市本级', '莲都区', '青田县', '缙云县', '遂昌县', '松阳县', '云和县', '庆元县', '景宁畲族自治县', '龙泉市'] }
+                ],
+                organizations: ['国家机关', '教育', '科技', '文化', '卫生', '体育', '住建', '其他'],
+                visits: {}
+            };
+
+            marketData.cities.forEach(city => {
+                city.districts.forEach(district => {
+                    const key = `${city.name}-${district}`;
+                    marketData.visits[key] = {};
+                    marketData.organizations.forEach(org => {
+                        const count = Math.floor(Math.random() * 20);
+                        const records = [];
+                        const recordCount = Math.floor(Math.random() * 5);
+                        for (let i = 0; i < recordCount; i++) {
+                            const date = new Date();
+                            date.setDate(date.getDate() - Math.floor(Math.random() * 30));
+                            date.setHours(Math.floor(Math.random() * 24), Math.floor(Math.random() * 60), 0);
+                            records.push({
+                                time: date.toISOString().slice(0, 16),
+                                count: Math.floor(Math.random() * 5) + 1
+                            });
+                        }
+                        records.sort((a, b) => new Date(b.time) - new Date(a.time));
+                        marketData.visits[key][org] = { count, records };
+                    });
+                });
+            });
+        };
+
+        const saveData = async () => {
+            try {
+                const response = await fetch('/.netlify/functions/visits', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(marketData)
+                });
+                if (response.ok) return;
+            } catch (e) {
+                console.log('API 不可用，保存到本地存储...');
+            }
+            localStorage.setItem('marketData', JSON.stringify(marketData));
+        };
+
+        const initPage = () => {
+            updateStats();
+            renderHeatmap();
+            initCharts();
+            bindEvents();
+            loadTheme();
+        };
+
+        const loadTheme = () => {
+            const saved = localStorage.getItem('dashboardTheme');
+            if (saved) {
+                currentTheme = saved;
+                document.documentElement.setAttribute('data-theme', saved);
+            }
+        };
+
+        const toggleTheme = () => {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            localStorage.setItem('dashboardTheme', currentTheme);
+            refreshCharts();
+        };
+
+        const refreshCharts = () => {
+            updateSevenDayChart();
+            updateCityChart(document.querySelector('.tab-btn[data-chart="city"].active')?.dataset.period || 'total');
+            updateOrgChart(document.querySelector('.tab-btn[data-chart="org"].active')?.dataset.period || 'total');
+        };
+
+        const getFilteredCount = (records) => {
+            if (!records || records.length === 0) return 0;
+            if (!filterStartDate && !filterEndDate) {
+                return records.reduce((sum, r) => sum + r.count, 0);
+            }
+            return records.filter(r => {
+                const recordDate = new Date(r.time);
+                const start = filterStartDate ? new Date(filterStartDate) : null;
+                const end = filterEndDate ? new Date(filterEndDate) : null;
+                if (start && recordDate < start) return false;
+                if (end) {
+                    end.setDate(end.getDate() + 1);
+                    if (recordDate >= end) return false;
+                }
+                return true;
+            }).reduce((sum, r) => sum + r.count, 0);
+        };
+
+        const getTotalVisits = () => {
+            let total = 0;
+            Object.values(marketData.visits).forEach(district => {
+                Object.values(district).forEach(org => {
+                    if (typeof org === 'object' && org.count !== undefined) {
+                        if (filterStartDate || filterEndDate) {
+                            total += getFilteredCount(org.records);
+                        } else {
+                            total += org.count;
+                        }
+                    }
+                });
+            });
+            return total;
+        };
+
+        const getWeekRange = () => {
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+            monday.setHours(0, 0, 0, 0);
+            const nextMonday = new Date(monday);
+            nextMonday.setDate(monday.getDate() + 7);
+            return { monday, nextMonday };
+        };
+
+        const getWeekVisits = () => {
+            const { monday, nextMonday } = getWeekRange();
+            let total = 0;
+            Object.values(marketData.visits).forEach(district => {
+                Object.values(district).forEach(org => {
+                    if (typeof org === 'object' && org.records) {
+                        org.records.forEach(record => {
+                            const recordDate = new Date(record.time);
+                            if (recordDate >= monday && recordDate < nextMonday) {
+                                total += record.count;
+                            }
+                        });
+                    }
+                });
+            });
+            return total;
+        };
+
+        const getSevenDayData = () => {
+            const days = [];
+            const counts = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                days.push(`${date.getMonth() + 1}/${date.getDate()}`);
+
+                let count = 0;
+                const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                const endOfDay = new Date(startOfDay);
+                endOfDay.setDate(endOfDay.getDate() + 1);
+
+                Object.values(marketData.visits).forEach(district => {
+                    Object.values(district).forEach(org => {
+                        if (typeof org === 'object' && org.records) {
+                            org.records.forEach(record => {
+                                const recordDate = new Date(record.time);
+                                if (recordDate >= startOfDay && recordDate < endOfDay) {
+                                    count += record.count;
+                                }
+                            });
+                        }
+                    });
+                });
+                counts.push(count);
+            }
+            return { days, counts };
+        };
+
+        const getCityData = (period = 'total') => {
+            const cities = marketData.cities.map(c => c.name);
+            const counts = [];
+            const { monday, nextMonday } = getWeekRange();
+
+            cities.forEach(city => {
+                let count = 0;
+                Object.entries(marketData.visits).forEach(([key, district]) => {
+                    if (key.startsWith(city + '-')) {
+                        Object.values(district).forEach(org => {
+                            if (typeof org === 'object') {
+                                if (period === 'total') {
+                                    if (filterStartDate || filterEndDate) {
+                                        count += getFilteredCount(org.records);
+                                    } else {
+                                        count += org.count || 0;
+                                    }
+                                } else {
+                                    org.records?.forEach(record => {
+                                        const recordDate = new Date(record.time);
+                                        if (recordDate >= monday && recordDate < nextMonday) {
+                                            count += record.count;
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+                counts.push(count);
+            });
+
+            return { cities, counts };
+        };
+
+        const getOrgData = (period = 'total') => {
+            const orgs = marketData.organizations;
+            const counts = [];
+            const { monday, nextMonday } = getWeekRange();
+
+            orgs.forEach(org => {
+                let count = 0;
+                Object.values(marketData.visits).forEach(district => {
+                    const orgData = district[org];
+                    if (orgData) {
+                        if (period === 'total') {
+                            if (filterStartDate || filterEndDate) {
+                                count += getFilteredCount(orgData.records);
+                            } else {
+                                count += orgData.count || 0;
+                            }
+                        } else {
+                            orgData.records?.forEach(record => {
+                                const recordDate = new Date(record.time);
+                                if (recordDate >= monday && recordDate < nextMonday) {
+                                    count += record.count;
+                                }
+                            });
+                        }
+                    }
+                });
+                counts.push(count);
+            });
+
+            return { orgs, counts };
+        };
+
+        const renderHeatmap = () => {
+            const container = document.getElementById('heatmap');
+            const isLight = currentTheme === 'light';
+
+            let html = '<table class="heatmap-table">';
+            html += '<tr><th>地区</th>';
+            marketData.organizations.forEach(org => {
+                html += `<th>${org}</th>`;
+            });
+            html += '</tr>';
+
+            marketData.cities.forEach(city => {
+                html += `<tr class="city-row" data-city="${city.name}"><td colspan="${marketData.organizations.length + 1}" onclick="toggleCity('${city.name}')">`;
+                html += '<span class="city-name">' + city.name + '</span>';
+                html += '<span class="expand-icon expanded">›</span>';
+                html += '</td></tr>';
+
+                city.districts.forEach(district => {
+                    const key = `${city.name}-${district}`;
+                    html += `<tr class="district-row" data-city="${city.name}" data-key="${key}">`;
+                    html += `<td>${district}</td>`;
+
+                    marketData.organizations.forEach(org => {
+                        const data = marketData.visits[key]?.[org];
+                        const records = data?.records || [];
+                        const count = filterStartDate || filterEndDate ? getFilteredCount(records) : (data?.count || 0);
+                        let intensity, alpha;
+                        if (count === 0) {
+                            intensity = 0;
+                            alpha = 0.05;
+                        } else {
+                            intensity = Math.min(count / 12, 1);
+                            alpha = 0.3 + intensity * 0.6;
+                        }
+                        
+                        const blueR = 50, blueG = 100, blueB = 200;
+                        const greenR = 50, greenG = 230, greenB = 150;
+                        const r = Math.round(blueR + (greenR - blueR) * intensity);
+                        const g = Math.round(blueG + (greenG - blueG) * intensity);
+                        const b = Math.round(blueB + (greenB - blueB) * intensity);
+                        const bgColor = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                        
+                        const glowClass = intensity > 0.6 ? ' high-intensity' : '';
+
+                        html += `<td class="heatmap-cell${glowClass}" style="background:${bgColor};" 
+                            data-org="${org}" 
+                            ondblclick="openVisitModal('${city.name}', '${district}', '${org}')">${count}</td>`;
+                    });
+                    html += '</tr>';
+                });
+            });
+
+            html += '</table>';
+            container.innerHTML = html;
+        };
+
+        const applyDateFilter = () => {
+            const start = document.getElementById('filterStartDate').value;
+            const end = document.getElementById('filterEndDate').value;
+            filterStartDate = start || null;
+            filterEndDate = end || null;
+            renderHeatmap();
+            updateStats();
+            updateCityChart(document.querySelector('.tab-btn[data-chart="city"].active')?.dataset.period || 'total');
+            updateOrgChart(document.querySelector('.tab-btn[data-chart="org"].active')?.dataset.period || 'total');
+        };
+
+        const setWeekFilter = () => {
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+
+            document.getElementById('filterStartDate').value = monday.toISOString().split('T')[0];
+            document.getElementById('filterEndDate').value = sunday.toISOString().split('T')[0];
+            applyDateFilter();
+        };
+
+        const resetFilter = () => {
+            document.getElementById('filterStartDate').value = '';
+            document.getElementById('filterEndDate').value = '';
+            filterStartDate = null;
+            filterEndDate = null;
+            renderHeatmap();
+            updateStats();
+            updateCityChart(document.querySelector('.tab-btn[data-chart="city"].active')?.dataset.period || 'total');
+            updateOrgChart(document.querySelector('.tab-btn[data-chart="org"].active')?.dataset.period || 'total');
+        };
+
+        const initCharts = () => {
+            sevenDayChart = echarts.init(document.getElementById('sevenDayChart'));
+            cityChart = echarts.init(document.getElementById('cityChart'));
+            orgChart = echarts.init(document.getElementById('orgChart'));
+
+            updateSevenDayChart();
+            updateCityChart('total');
+            updateOrgChart('total');
+
+            window.addEventListener('resize', () => {
+                sevenDayChart.resize();
+                cityChart.resize();
+                orgChart.resize();
+            });
+        };
+
+        const getChartColors = () => {
+            return currentTheme === 'light' 
+                ? { primary: '#0284c7', secondary: '#10b981', text: '#64748b', line: '#e2e8f0' }
+                : { primary: '#00d4ff', secondary: '#00ff88', text: 'rgba(255,255,255,0.7)', line: 'rgba(255,255,255,0.1)' };
+        };
+
+        const updateSevenDayChart = () => {
+            const data = getSevenDayData();
+            const colors = getChartColors();
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: '{b}<br/>拜访次数: {c}',
+                    textStyle: { color: colors.text },
+                    backgroundColor: currentTheme === 'light' ? 'rgba(255,255,255,0.95)' : 'rgba(10, 14, 39, 0.95)',
+                    borderColor: colors.line,
+                    borderWidth: 1
+                },
+                grid: { left: '4%', right: '4%', bottom: '6%', top: '12%', containLabel: true },
+                xAxis: {
+                    type: 'category',
+                    data: data.days,
+                    axisLine: { lineStyle: { color: colors.line } },
+                    axisLabel: { color: colors.text, fontSize: 10 },
+                    axisTick: { show: false }
+                },
+                yAxis: {
+                    type: 'value',
+                    axisLine: { show: false },
+                    axisLabel: { color: colors.text, fontSize: 10 },
+                    splitLine: { lineStyle: { color: colors.line, type: 'dashed' } },
+                    axisTick: { show: false }
+                },
+                series: [{
+                    data: data.counts,
+                    type: 'line',
+                    smooth: true,
+                    symbol: 'circle',
+                    symbolSize: 6,
+                    lineStyle: { color: colors.primary, width: 2 },
+                    itemStyle: { color: colors.primary, borderWidth: 2, borderColor: currentTheme === 'light' ? '#fff' : '#0a0e27' },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: `${colors.primary}40` },
+                            { offset: 1, color: `${colors.primary}05` }
+                        ])
+                    },
+                    label: {
+                        show: true,
+                        position: 'top',
+                        fontSize: 10,
+                        color: colors.text,
+                        formatter: '{c}'
+                    }
+                }]
+            };
+            sevenDayChart.setOption(option);
+        };
+
+        const updateCityChart = (period) => {
+            const data = getCityData(period);
+            const colors = getChartColors();
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: '{b}<br/>拜访次数: {c}',
+                    textStyle: { color: colors.text },
+                    backgroundColor: currentTheme === 'light' ? 'rgba(255,255,255,0.95)' : 'rgba(10, 14, 39, 0.95)',
+                    borderColor: colors.line,
+                    borderWidth: 1
+                },
+                grid: { left: '8%', right: '4%', bottom: '6%', top: '8%', containLabel: true },
+                xAxis: {
+                    type: 'value',
+                    axisLine: { show: false },
+                    axisLabel: { color: colors.text, fontSize: 10 },
+                    splitLine: { lineStyle: { color: colors.line, type: 'dashed' } },
+                    axisTick: { show: false }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: data.cities,
+                    axisLine: { show: false },
+                    axisLabel: { color: colors.text, fontSize: 10 },
+                    axisTick: { show: false }
+                },
+                series: [{
+                    data: data.counts,
+                    type: 'bar',
+                    barWidth: '50%',
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                            { offset: 0, color: colors.primary },
+                            { offset: 1, color: `${colors.primary}80` }
+                        ]),
+                        borderRadius: [0, 6, 6, 0]
+                    },
+                    label: {
+                        show: true,
+                        position: 'right',
+                        fontSize: 10,
+                        color: colors.text,
+                        formatter: '{c}'
+                    }
+                }]
+            };
+            cityChart.setOption(option);
+        };
+
+        const updateOrgChart = (period) => {
+            const data = getOrgData(period);
+            const colors = getChartColors();
+            const option = {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{b}: {c}次',
+                    textStyle: { color: colors.text },
+                    backgroundColor: currentTheme === 'light' ? 'rgba(255,255,255,0.95)' : 'rgba(10, 14, 39, 0.95)',
+                    borderColor: colors.line,
+                    borderWidth: 1
+                },
+                legend: {
+                    orient: 'horizontal',
+                    bottom: 0,
+                    textStyle: { color: colors.text, fontSize: 10 }
+                },
+                series: [{
+                    data: data.orgs.map((org, i) => ({ value: data.counts[i], name: org })),
+                    type: 'pie',
+                    radius: ['36%', '60%'],
+                    center: ['50%', '40%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: {
+                        borderRadius: 6,
+                        borderColor: currentTheme === 'light' ? '#fff' : '#0a0e27',
+                        borderWidth: 2
+                    },
+                    label: { 
+                        show: true,
+                        fontSize: 10,
+                        color: colors.text,
+                        formatter: '{b}\n{c}次',
+                        alignTo: 'labelLine',
+                        minMargin: 5
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: 12,
+                            fontWeight: 'bold',
+                            color: currentTheme === 'light' ? '#1e293b' : '#fff'
+                        }
+                    },
+                    labelLine: { 
+                        show: true,
+                        length: 15,
+                        length2: 10,
+                        lineStyle: { color: colors.line }
+                    },
+                    colors: [colors.primary, colors.secondary, '#f59e0b', '#ef4444', '#8b5cf6']
+                }]
+            };
+            orgChart.setOption(option);
+        };
+
+        let currentCity, currentDistrict, currentOrg;
+
+        const openVisitModal = (city, district, org) => {
+            currentCity = city;
+            currentDistrict = district;
+            currentOrg = org;
+
+            document.getElementById('modalRegion').value = `${city} - ${district}`;
+            document.getElementById('modalOrg').value = org;
+            document.getElementById('modalCount').value = '';
+
+            const now = new Date();
+            document.getElementById('modalTime').value = formatDate(now);
+
+            const key = `${city}-${district}`;
+            const records = marketData.visits[key]?.[org]?.records || [];
+            const recordList = document.getElementById('recordList');
+            recordList.innerHTML = records.length > 0
+                ? records.map((r, index) => `<div class="record-item"><span class="record-time">${r.time}</span><span class="record-count">${r.count}次</span><button class="record-delete" data-index="${index}">删除</button></div>`).join('')
+                : '<div style="text-align:center;color:var(--text-muted);padding:12px;">暂无记录</div>';
+
+            document.getElementById('visitModal').classList.add('show');
+        };
+
+        const setupRecordDeleteListeners = () => {
+            document.getElementById('recordList').addEventListener('click', (e) => {
+                if (e.target.classList.contains('record-delete')) {
+                    const index = parseInt(e.target.dataset.index);
+                    deleteRecord(index);
+                }
+            });
+        };
+
+        const deleteRecord = async (index) => {
+            const key = `${currentCity}-${currentDistrict}`;
+            const orgData = marketData.visits[key]?.[currentOrg];
+            
+            if (orgData && orgData.records && orgData.records[index]) {
+                const deletedCount = orgData.records[index].count;
+                orgData.records.splice(index, 1);
+                orgData.count = (orgData.count || 0) - deletedCount;
+                
+                await saveData();
+                
+                renderHeatmap();
+                updateStats();
+                updateCityChart(document.querySelector('.tab-btn[data-chart="city"].active')?.dataset.period || 'total');
+                updateOrgChart(document.querySelector('.tab-btn[data-chart="org"].active')?.dataset.period || 'total');
+                
+                openVisitModal(currentCity, currentDistrict, currentOrg);
+            }
+        };
+
+        const closeVisitModal = () => {
+            document.getElementById('visitModal').classList.remove('show');
+        };
+
+        const submitVisit = async () => {
+            const count = parseInt(document.getElementById('modalCount').value);
+            const time = document.getElementById('modalTime').value;
+
+            if (!count || count <= 0) {
+                alert('请输入有效的拜访次数');
+                return;
+            }
+            if (!time) {
+                alert('请选择拜访时间');
+                return;
+            }
+
+            const key = `${currentCity}-${currentDistrict}`;
+            if (!marketData.visits[key]) {
+                marketData.visits[key] = {};
+            }
+            if (!marketData.visits[key][currentOrg]) {
+                marketData.visits[key][currentOrg] = { count: 0, records: [] };
+            }
+
+            marketData.visits[key][currentOrg].count += count;
+            marketData.visits[key][currentOrg].records.unshift({ time, count });
+
+            await saveData();
+
+            updateStats();
+            renderHeatmap();
+            updateSevenDayChart();
+            updateCityChart(document.querySelector('.tab-btn[data-chart="city"].active')?.dataset.period || 'total');
+            updateOrgChart(document.querySelector('.tab-btn[data-chart="org"].active')?.dataset.period || 'total');
+
+            closeVisitModal();
+        };
+
+        const updateStats = () => {
+            document.getElementById('totalVisits').textContent = getTotalVisits();
+            document.getElementById('weekVisits').textContent = getWeekVisits();
+        };
+
+        const bindEvents = () => {
+            document.getElementById('modalCancel').addEventListener('click', closeVisitModal);
+            document.getElementById('modalSubmit').addEventListener('click', submitVisit);
+            document.getElementById('filterWeekBtn').addEventListener('click', setWeekFilter);
+            document.getElementById('filterResetBtn').addEventListener('click', resetFilter);
+            setupRecordDeleteListeners();
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const chart = btn.dataset.chart;
+                    const period = btn.dataset.period;
+
+                    btn.parentElement.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    if (chart === 'city') {
+                        updateCityChart(period);
+                    } else if (chart === 'org') {
+                        updateOrgChart(period);
+                    }
+                });
+            });
+
+            initDatePickers();
+        };
+
+        const initDatePickers = () => {
+            const startInput = document.getElementById('filterStartDate');
+            const endInput = document.getElementById('filterEndDate');
+            const startCalendar = document.getElementById('startDateCalendar');
+            const endCalendar = document.getElementById('endDateCalendar');
+            const modalTimeInput = document.getElementById('modalTime');
+            const modalTimeCalendar = document.getElementById('modalTimeCalendar');
+
+            startInput.addEventListener('click', () => {
+                toggleCalendar(startCalendar, startInput);
+            });
+
+            endInput.addEventListener('click', () => {
+                toggleCalendar(endCalendar, endInput);
+            });
+
+            modalTimeInput.addEventListener('click', () => {
+                toggleCalendar(modalTimeCalendar, modalTimeInput);
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.date-picker-wrapper')) {
+                    startCalendar.classList.remove('show');
+                    endCalendar.classList.remove('show');
+                    modalTimeCalendar.classList.remove('show');
+                }
+            });
+
+            renderCalendar(startCalendar, startInput);
+            renderCalendar(endCalendar, endInput);
+            renderCalendar(modalTimeCalendar, modalTimeInput);
+        };
+
+        const toggleCalendar = (calendar, input) => {
+            document.querySelectorAll('.date-picker-calendar').forEach(c => c.classList.remove('show'));
+            calendar.classList.toggle('show');
+            
+            if (calendar.classList.contains('show')) {
+                renderCalendar(calendar, input);
+            }
+        };
+
+        const renderCalendar = (calendar, input) => {
+            const selectedDate = input.value ? new Date(input.value) : new Date();
+            const year = selectedDate.getFullYear();
+            const month = selectedDate.getMonth();
+
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let html = '<div class="date-picker-header">';
+            html += `<button class="date-picker-nav" onclick="changeMonth(this, -1, '${calendar.id}')">‹</button>`;
+            html += `<div class="date-picker-month">${year}年${month + 1}月</div>`;
+            html += `<button class="date-picker-nav" onclick="changeMonth(this, 1, '${calendar.id}')">›</button>`;
+            html += '</div>';
+
+            html += '<div class="date-picker-weekdays">';
+            ['日', '一', '二', '三', '四', '五', '六'].forEach(day => {
+                html += `<div class="date-picker-weekday">${day}</div>`;
+            });
+            html += '</div>';
+
+            html += '<div class="date-picker-days">';
+
+            const startDay = firstDay.getDay();
+            const prevMonthLastDay = new Date(year, month, 0).getDate();
+            for (let i = startDay - 1; i >= 0; i--) {
+                const day = prevMonthLastDay - i;
+                html += `<button class="date-picker-day other-month" onclick="selectDate(this, ${year}, ${month - 1}, ${day}, '${calendar.id}')">${day}</button>`;
+            }
+
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const date = new Date(year, month, day);
+                date.setHours(0, 0, 0, 0);
+                let className = 'date-picker-day';
+                
+                if (date.getTime() === today.getTime()) {
+                    className += ' today';
+                }
+                if (input.value && formatDate(date) === input.value) {
+                    className += ' selected';
+                }
+                
+                html += `<button class="${className}" onclick="selectDate(this, ${year}, ${month}, ${day}, '${calendar.id}')">${day}</button>`;
+            }
+
+            const remainingDays = 42 - startDay - lastDay.getDate();
+            for (let day = 1; day <= remainingDays; day++) {
+                html += `<button class="date-picker-day other-month" onclick="selectDate(this, ${year}, ${month + 1}, ${day}, '${calendar.id}')">${day}</button>`;
+            }
+
+            html += '</div>';
+
+            html += '<div class="date-picker-footer">';
+            html += `<button class="date-picker-btn date-picker-clear" onclick="clearDate('${calendar.id}')">清除</button>`;
+            html += `<button class="date-picker-btn" onclick="selectToday('${calendar.id}')">今天</button>`;
+            html += '</div>';
+
+            calendar.innerHTML = html;
+        };
+
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        const changeMonth = (btn, delta, calendarId) => {
+            const calendar = document.getElementById(calendarId);
+            const input = getInputForCalendar(calendarId);
+            
+            const selectedDate = input.value ? new Date(input.value) : new Date();
+            selectedDate.setMonth(selectedDate.getMonth() + delta);
+            input.value = formatDate(selectedDate);
+            renderCalendar(calendar, input);
+        };
+
+        const selectDate = (btn, year, month, day, calendarId) => {
+            const calendar = document.getElementById(calendarId);
+            const input = getInputForCalendar(calendarId);
+            
+            const date = new Date(year, month, day);
+            input.value = formatDate(date);
+            calendar.classList.remove('show');
+            if (calendarId === 'startDateCalendar' || calendarId === 'endDateCalendar') {
+                applyDateFilter();
+            }
+        };
+
+        const clearDate = (calendarId) => {
+            const input = getInputForCalendar(calendarId);
+            input.value = '';
+            if (calendarId === 'startDateCalendar' || calendarId === 'endDateCalendar') {
+                applyDateFilter();
+            }
+        };
+
+        const selectToday = (calendarId) => {
+            const calendar = document.getElementById(calendarId);
+            const input = getInputForCalendar(calendarId);
+            const today = new Date();
+            input.value = formatDate(today);
+            calendar.classList.remove('show');
+            if (calendarId === 'startDateCalendar' || calendarId === 'endDateCalendar') {
+                applyDateFilter();
+            }
+        };
+
+        const getInputForCalendar = (calendarId) => {
+            switch(calendarId) {
+                case 'startDateCalendar':
+                    return document.getElementById('filterStartDate');
+                case 'endDateCalendar':
+                    return document.getElementById('filterEndDate');
+                case 'modalTimeCalendar':
+                    return document.getElementById('modalTime');
+                default:
+                    return null;
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', loadData);
+
+        window.toggleCity = function(cityName) {
+            const cityElement = document.querySelector(`.city-row[data-city="${cityName}"]`);
+            if (cityElement) {
+                const icon = cityElement.querySelector('.expand-icon');
+                icon.classList.toggle('expanded');
+                
+                const districtRows = document.querySelectorAll(`.district-row[data-city="${cityName}"]`);
+                districtRows.forEach(row => {
+                    row.classList.toggle('hidden');
+                });
+            }
+        };
+    </script>
+</body>
+</html>
