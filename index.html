@@ -249,9 +249,12 @@
             font-weight: 600;
             color: var(--accent-primary);
             cursor: pointer;
+            border: none;
+        }
+
+        .heatmap-table .city-row td:first-child {
             display: flex;
             align-items: center;
-            border: none;
         }
 
         .heatmap-table .city-row td:hover {
@@ -1172,10 +1175,15 @@
             html += '</tr>';
 
             marketData.cities.forEach(city => {
-                html += `<tr class="city-row" data-city="${city.name}"><td colspan="${marketData.organizations.length + 1}" onclick="toggleCity('${city.name}')">`;
+                html += `<tr class="city-row" data-city="${city.name}">`;
+                html += `<td onclick="toggleCity('${city.name}')">`;
                 html += '<span class="city-name">' + city.name + '</span>';
                 html += '<span class="expand-icon expanded">›</span>';
-                html += '</td></tr>';
+                html += '</td>';
+                marketData.organizations.forEach(org => {
+                    html += `<td onclick="toggleCity('${city.name}')"></td>`;
+                });
+                html += '</tr>';
 
                 city.districts.forEach(district => {
                     const key = `${city.name}-${district}`;
@@ -1479,6 +1487,7 @@
                 
                 renderHeatmap();
                 updateStats();
+                updateSevenDayChart();
                 updateCityChart(document.querySelector('.tab-btn[data-chart="city"].active')?.dataset.period || 'total');
                 updateOrgChart(document.querySelector('.tab-btn[data-chart="org"].active')?.dataset.period || 'total');
                 
