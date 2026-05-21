@@ -883,9 +883,12 @@
             try {
                 const response = await fetch('/.netlify/functions/visits');
                 if (response.ok) {
-                    marketData = await response.json();
-                    initPage();
-                    return;
+                    const data = await response.json();
+                    if (data.cities && data.cities.length > 0) {
+                        marketData = data;
+                        initPage();
+                        return;
+                    }
                 }
             } catch (e) {
                 console.log('API 不可用，尝试本地存储...');
@@ -902,6 +905,7 @@
                 const response = await fetch('data/marketData.json');
                 marketData = await response.json();
                 localStorage.setItem('marketData', JSON.stringify(marketData));
+                saveData();
                 initPage();
             } catch (error) {
                 console.error('加载数据失败:', error);

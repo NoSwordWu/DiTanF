@@ -1,6 +1,10 @@
 import { getStore } from "@netlify/blobs";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+
+const DEFAULT_DATA = {
+    cities: [],
+    organizations: ["国家机关", "教育", "科技", "文化", "卫生", "体育", "住建", "其他"],
+    visits: {}
+};
 
 export default async (req) => {
     const store = getStore("marketData");
@@ -9,10 +13,11 @@ export default async (req) => {
         let data = await store.get("marketData", { type: "json" });
 
         if (!data) {
-            const jsonPath = join(process.cwd(), "data", "marketData.json");
-            const raw = await readFile(jsonPath, "utf-8");
-            data = JSON.parse(raw);
-            await store.setJSON("marketData", data);
+            return {
+                statusCode: 200,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(DEFAULT_DATA)
+            };
         }
 
         return {
