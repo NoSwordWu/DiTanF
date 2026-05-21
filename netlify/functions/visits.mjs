@@ -13,32 +13,29 @@ export default async (req) => {
         let data = await store.get("marketData", { type: "json" });
 
         if (!data) {
-            return {
-                statusCode: 200,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(DEFAULT_DATA)
-            };
+            return new Response(JSON.stringify(DEFAULT_DATA), {
+                status: 200,
+                headers: { "Content-Type": "application/json" }
+            });
         }
 
-        return {
-            statusCode: 200,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data)
-        };
+        return new Response(JSON.stringify(data), {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+        });
     }
 
     if (req.method === "POST") {
-        const body = JSON.parse(req.body);
+        const body = await req.json();
         await store.setJSON("marketData", body);
-        return {
-            statusCode: 200,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ success: true })
-        };
+        return new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+        });
     }
 
-    return {
-        statusCode: 405,
-        body: JSON.stringify({ error: "Method Not Allowed" })
-    };
+    return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
+        status: 405,
+        headers: { "Content-Type": "application/json" }
+    });
 };
