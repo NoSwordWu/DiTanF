@@ -118,7 +118,167 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 12px;
-            flex-shrink: 0;
+        }
+
+        .mode-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            color: rgba(255, 255, 255, 0.5);
+            border-radius: 6px;
+        }
+
+        .mode-toggle:hover {
+            background: rgba(0, 212, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .mode-toggle.edit-mode {
+            color: var(--accent-primary);
+        }
+
+        .mode-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        .title-container {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .auth-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-modal.show {
+            display: flex;
+        }
+
+        .auth-modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+        }
+
+        .auth-modal-content {
+            position: relative;
+            width: 360px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: modalFadeIn 0.2s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .auth-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .auth-modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .auth-modal-close {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .auth-modal-close:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .auth-modal-body {
+            padding: 20px;
+        }
+
+        .auth-modal-body p {
+            margin: 0 0 16px 0;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.25s ease;
+            box-sizing: border-box;
+        }
+
+        .auth-input:focus {
+            border-color: var(--accent-primary);
+        }
+
+        .auth-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+        .auth-error {
+            margin-top: 8px;
+            color: #ef4444;
+            font-size: 12px;
+            height: 16px;
+        }
+
+        .auth-modal-footer {
+            display: flex;
+            gap: 10px;
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-color);
+            justify-content: flex-end;
         }
 
         .panel-title {
@@ -210,8 +370,6 @@
 
         .heatmap-container {
             flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
             border-radius: 10px;
             background: var(--bg-secondary);
             padding: 10px;
@@ -219,18 +377,50 @@
             max-height: calc(100vh - 100px);
         }
 
+        .heatmap-table-wrapper {
+            width: 100%;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .heatmap-table-wrapper.scrollbar::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        .heatmap-table-wrapper.scrollbar::-webkit-scrollbar-track {
+            background: var(--bg-card);
+            border-radius: 3px;
+        }
+
+        .heatmap-table-wrapper.scrollbar::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
         .heatmap-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
             font-size: 12px;
         }
 
+        .heatmap-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
         .heatmap-table th {
+            position: sticky;
+            top: 0;
+            z-index: 100;
             padding: 8px 10px;
             text-align: center;
             font-weight: 600;
             color: var(--text-secondary);
-            background: var(--bg-card);
+            background: #121a42;
             border-bottom: 1px solid var(--border-color);
             white-space: nowrap;
         }
@@ -238,6 +428,15 @@
         .heatmap-table th:first-child {
             text-align: left;
             width: 100px;
+        }
+
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-secondary);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid var(--border-color);
         }
 
         .heatmap-table .city-row {
@@ -778,8 +977,34 @@
     <div class="main-content">
         <div class="left-panel">
             <div class="panel-header">
-                <div class="panel-title">区县市场跑动覆盖情况</div>
+                <div class="title-container">
+                    <div class="panel-title">区县市场跑动覆盖情况</div>
+                    <div class="mode-toggle" onclick="toggleEditMode()" title="切换编辑模式">
+                        <svg class="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+                            <path d="M15 2v4h4M10 16l2-2 4 4"></path>
+                        </svg>
+                    </div>
+                </div>
                 <div class="filter-bar">
+                    <div class="auth-modal" id="authModal">
+                        <div class="auth-modal-overlay" onclick="closeAuthModal()"></div>
+                        <div class="auth-modal-content">
+                            <div class="auth-modal-header">
+                                <div class="auth-modal-title">身份验证</div>
+                                <button class="auth-modal-close" onclick="closeAuthModal()">×</button>
+                            </div>
+                            <div class="auth-modal-body">
+                                <p>请输入身份校验码以切换到编辑模式</p>
+                                <input type="password" class="auth-input" id="authCode" placeholder="请输入校验码" maxlength="10">
+                                <div class="auth-error" id="authError"></div>
+                            </div>
+                            <div class="auth-modal-footer">
+                                <button class="btn btn-secondary" onclick="closeAuthModal()">取消</button>
+                                <button class="btn btn-primary" onclick="verifyAuthCode()">确认</button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="date-picker-wrapper">
                         <input type="text" class="date-picker-input" id="filterStartDate" placeholder="开始日期" readonly>
                         <div class="date-picker-calendar" id="startDateCalendar"></div>
@@ -879,8 +1104,51 @@
         let marketData = null;
         let currentTheme = 'dark';
         let sevenDayChart, cityChart, orgChart;
+        let editMode = false;
         let filterStartDate = null;
         let filterEndDate = null;
+
+        const toggleEditMode = () => {
+            const toggleBtn = document.querySelector('.mode-toggle');
+            const modeIcon = document.querySelector('.mode-icon');
+
+            if (editMode) {
+                editMode = false;
+                toggleBtn.classList.remove('edit-mode');
+                modeIcon.innerHTML = '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M15 2v4h4M10 16l2-2 4 4"></path>';
+            } else {
+                openAuthModal();
+            }
+        };
+
+        const openAuthModal = () => {
+            document.getElementById('authModal').classList.add('show');
+            document.getElementById('authCode').value = '';
+            document.getElementById('authError').textContent = '';
+            document.getElementById('authCode').focus();
+        };
+
+        const closeAuthModal = () => {
+            document.getElementById('authModal').classList.remove('show');
+            document.getElementById('authCode').value = '';
+            document.getElementById('authError').textContent = '';
+        };
+
+        const verifyAuthCode = () => {
+            const code = document.getElementById('authCode').value;
+            const errorElement = document.getElementById('authError');
+            const toggleBtn = document.querySelector('.mode-toggle');
+            const modeIcon = document.querySelector('.mode-icon');
+
+            if (code === 'ljj01') {
+                editMode = true;
+                toggleBtn.classList.add('edit-mode');
+                modeIcon.innerHTML = '<path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>';
+                closeAuthModal();
+            } else {
+                errorElement.textContent = '身份校验码错误，请重试';
+            }
+        };
 
         const loadData = async () => {
             try {
@@ -1165,14 +1433,13 @@
 
         const renderHeatmap = () => {
             const container = document.getElementById('heatmap');
-            const isLight = currentTheme === 'light';
 
-            let html = '<table class="heatmap-table">';
-            html += '<tr><th>地区</th>';
+            let html = '<div class="heatmap-table-wrapper scrollbar"><table class="heatmap-table"><thead><tr>';
+            html += '<th class="sticky-header">地区</th>';
             marketData.organizations.forEach(org => {
-                html += `<th>${org}</th>`;
+                html += `<th class="sticky-header">${org}</th>`;
             });
-            html += '</tr>';
+            html += '</tr></thead><tbody>';
 
             marketData.cities.forEach(city => {
                 html += `<tr class="city-row" data-city="${city.name}">`;
@@ -1220,7 +1487,7 @@
                 });
             });
 
-            html += '</table>';
+            html += '</tbody></table></div>';
             container.innerHTML = html;
         };
 
@@ -1444,6 +1711,9 @@
         let currentCity, currentDistrict, currentOrg;
 
         const openVisitModal = (city, district, org) => {
+            if (!editMode) {
+                return;
+            }
             currentCity = city;
             currentDistrict = district;
             currentOrg = org;
