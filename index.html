@@ -971,6 +971,21 @@
         .date-picker-clear {
             color: var(--accent-danger);
         }
+
+        @media (max-width: 900px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .left-panel {
+                display: none;
+            }
+
+            .right-panel {
+                flex: 1;
+                max-height: none;
+            }
+        }
     </style>
 </head>
 <body>
