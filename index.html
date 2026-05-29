@@ -368,6 +368,26 @@
             border-color: transparent;
         }
 
+        .export-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+        }
+
+        .export-btn:hover {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: #22c55e;
+            color: #22c55e;
+        }
+
+        .export-icon {
+            width: 14px;
+            height: 14px;
+        }
+
         .heatmap-container {
             flex: 1;
             border-radius: 10px;
@@ -1030,6 +1050,13 @@
                     </div>
                     <button class="filter-btn" id="filterWeekBtn">本周</button>
                     <button class="filter-btn" id="filterResetBtn">全部</button>
+                    <button class="filter-btn export-btn" id="exportBtn" title="导出CSV">
+                        <svg class="export-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
                 </div>
             </div>
             <div class="heatmap-container scrollbar" id="heatmap"></div>
@@ -1506,6 +1533,53 @@
             container.innerHTML = html;
         };
 
+        const exportToCSV = () => {
+            const startDate = filterStartDate || '';
+            const endDate = filterEndDate || '';
+            
+            let dateRange = '';
+            if (startDate && endDate) {
+                dateRange = `${startDate}~${endDate}`;
+            } else if (startDate) {
+                dateRange = `${startDate}~至今`;
+            } else if (endDate) {
+                dateRange = `起始~${endDate}`;
+            }
+            
+            const filename = `浙江省区县覆盖情况列表（${dateRange || '全部数据'}）.csv`;
+
+            let csv = '\uFEFF';
+            csv += `地市,区县,${marketData.organizations.join(',')}\n`;
+
+            marketData.cities.forEach(city => {
+                city.districts.forEach(district => {
+                    const key = `${city.name}-${district}`;
+                    const cityEscaped = city.name.replace(/"/g, '""');
+                    const districtEscaped = district.replace(/"/g, '""');
+                    let row = `"${cityEscaped}","${districtEscaped}"`;
+                    
+                    marketData.organizations.forEach(org => {
+                        const data = marketData.visits[key]?.[org];
+                        const records = data?.records || [];
+                        const count = filterStartDate || filterEndDate ? getFilteredCount(records) : (data?.count || 0);
+                        row += `,${count}`;
+                    });
+                    
+                    csv += `${row}\n`;
+                });
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
         const applyDateFilter = () => {
             const start = document.getElementById('filterStartDate').value;
             const end = document.getElementById('filterEndDate').value;
@@ -1829,6 +1903,7 @@
             document.getElementById('modalSubmit').addEventListener('click', submitVisit);
             document.getElementById('filterWeekBtn').addEventListener('click', setWeekFilter);
             document.getElementById('filterResetBtn').addEventListener('click', resetFilter);
+            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
             setupRecordDeleteListeners();
 
             document.querySelectorAll('.tab-btn').forEach(btn => {
